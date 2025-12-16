@@ -1,27 +1,51 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
 import DashboardLayout from './layouts/DashboardLayout'
-import DashboardPage from './pages/DashboardPage.tsx'
+import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 import LandingPage from './pages/LandingPage'
+import QuizPage from './pages/QuizPage'
+import StudentsPage from './pages/StudentsPage'
+import AcademicsPage from './pages/AcademicsPage'
+import LibraryPage from './pages/LibraryPage'
+import AdminPage from './pages/AdminPage'
+import MessagesPage from './pages/MessagesPage'
+import TeachersPage from './pages/TeachersPage'
+import CalendarPage from './pages/CalendarPage'
+import SettingsPage from './pages/SettingsPage'
 
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AuthProvider>
+        <ToastProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
 
-      <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="students" element={<div className="p-6 text-white">Students Management Module (Coming Soon)</div>} />
-        <Route path="academics" element={<div className="p-6 text-white">Academics Module (Coming Soon)</div>} />
-        <Route path="library" element={<div className="p-6 text-white">Library Module (Coming Soon)</div>} />
-        <Route path="admin" element={<div className="p-6 text-white">Administration Module (Coming Soon)</div>} />
-        <Route path="messages" element={<div className="p-6 text-white">Messages/Communication Module (Coming Soon)</div>} />
-      </Route>
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="students" element={<StudentsPage />} />
+              <Route path="teachers" element={<TeachersPage />} />
+              <Route path="academics" element={<AcademicsPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="library" element={<LibraryPage />} />
+              <Route path="admin" element={<AdminPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+              <Route path="quiz" element={<QuizPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

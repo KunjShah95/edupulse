@@ -1,97 +1,103 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Lock, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Simulate login
-        setTimeout(() => {
-            setLoading(false);
-            navigate('/');
-        }, 1500);
+        setError('');
+
+        const result = await login(email, password);
+
+        if (result.success) {
+            navigate('/dashboard');
+        } else {
+            setError(result.error || 'Login failed. Please try again.');
+        }
+        setLoading(false);
     };
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-900">
-            {/* Background Image */}
-            <div
-                className="absolute inset-0 z-0 opacity-60"
-                style={{
-                    backgroundImage: `url('/assets/login-bg.png')`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                }}
-            />
-
-            {/* Overlay Gradient */}
-            <div className="absolute inset-0 z-0 bg-gradient-to-tr from-slate-900/90 via-slate-900/50 to-blue-900/30 backdrop-blur-sm" />
-
+        <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
             {/* Login Card */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "out" }}
-                className="relative z-10 w-full max-w-md p-8 m-4 bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-md"
+                transition={{ duration: 0.4 }}
+                className="w-full max-w-md p-8 bg-zinc-900 border border-zinc-800 rounded-2xl"
             >
                 <div className="text-center mb-8">
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="inline-block p-3 mb-4 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 shadow-lg"
-                    >
-                        <User className="w-8 h-8 text-white" />
-                    </motion.div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-                    <p className="text-blue-200">Sign in to EduPulse Portal</p>
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-emerald-600 mb-4">
+                        <User className="w-7 h-7 text-white" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-white mb-1">Welcome Back</h1>
+                    <p className="text-zinc-400">Sign in to EduPulse Portal</p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-6">
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3"
+                    >
+                        <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                        <p className="text-sm text-red-300">{error}</p>
+                    </motion.div>
+                )}
+
+                <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-blue-100 ml-1">Email Address</label>
-                        <div className="relative group">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300 group-focus-within:text-blue-400 transition-colors" />
+                        <label className="text-sm font-medium text-zinc-300">Email Address</label>
+                        <div className="relative">
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                             <input
                                 type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 placeholder="admin@edupulse.com"
-                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/50 focus:border-emerald-600 transition-all"
                                 required
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-blue-100 ml-1">Password</label>
-                        <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300 group-focus-within:text-blue-400 transition-colors" />
+                        <label className="text-sm font-medium text-zinc-300">Password</label>
+                        <div className="relative">
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                             <input
                                 type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/50 focus:border-emerald-600 transition-all"
                                 required
                             />
                         </div>
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
-                        <label className="flex items-center text-blue-200 hover:text-white cursor-pointer transition-colors">
-                            <input type="checkbox" className="mr-2 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/50" />
+                        <label className="flex items-center text-zinc-400 hover:text-zinc-300 cursor-pointer transition-colors">
+                            <input type="checkbox" className="mr-2 rounded border-zinc-600 bg-zinc-700 text-emerald-600 focus:ring-emerald-600/50" />
                             Remember me
                         </label>
-                        <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors">Forgot Password?</a>
+                        <a href="#" className="text-emerald-400 hover:text-emerald-300 transition-colors">Forgot Password?</a>
                     </div>
 
-                    <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                    <button
+                        type="submit"
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -100,11 +106,14 @@ const LoginPage = () => {
                                 Sign In <ArrowRight className="w-5 h-5" />
                             </>
                         )}
-                    </motion.button>
+                    </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm text-slate-400">
-                    Don't have an account? <a href="#" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">Contact Admin</a>
+                <div className="mt-8 text-center text-sm text-zinc-400">
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+                        Create Account
+                    </Link>
                 </div>
             </motion.div>
         </div>
