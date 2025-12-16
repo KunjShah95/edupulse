@@ -14,12 +14,26 @@ const Header = ({ onMenuClick }: HeaderProps) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const notificationRef = useRef<HTMLDivElement>(null);
+
+    // Mock Notifications
+    const notifications = [
+        { id: 1, title: 'Exam Schedule Released', message: 'The final exam schedule is now available.', time: '2h ago', read: false },
+        { id: 2, title: 'New Assignment', message: 'Math assignment pending review.', time: '5h ago', read: false },
+        { id: 3, title: 'System Update', message: 'EduPulse will undergo maintenance tonight.', time: '1d ago', read: true },
+    ];
+
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setShowProfileMenu(false);
+            }
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setShowNotifications(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -64,10 +78,50 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                 </button>
 
                 {/* Notifications */}
-                <button className="relative p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                    <Bell className="w-6 h-6" />
-                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-                </button>
+                <div className="relative" ref={notificationRef}>
+                    <button
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className="relative p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        <Bell className="w-6 h-6" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                        )}
+                    </button>
+
+                    <AnimatePresence>
+                        {showNotifications && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
+                            >
+                                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                    <h3 className="font-bold text-slate-900 dark:text-white">Notifications</h3>
+                                    <span className="text-xs bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">{unreadCount} New</span>
+                                </div>
+                                <div className="max-h-[300px] overflow-y-auto">
+                                    {notifications.map((notif) => (
+                                        <div key={notif.id} className={`p-4 border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${!notif.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{notif.title}</h4>
+                                                <span className="text-[10px] text-slate-400">{notif.time}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 line-clamp-2">{notif.message}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="p-2 border-t border-slate-100 dark:border-slate-800 text-center">
+                                    <button className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors w-full py-1">
+                                        Mark all as read
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 {/* User Profile with Dropdown */}
                 <div className="relative" ref={dropdownRef}>

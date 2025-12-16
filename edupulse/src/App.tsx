@@ -16,7 +16,7 @@ import MessagesPage from './pages/MessagesPage'
 import TeachersPage from './pages/TeachersPage'
 import CalendarPage from './pages/CalendarPage'
 import SettingsPage from './pages/SettingsPage'
-
+import { Analytics } from '@vercel/analytics/react'
 
 function App() {
   return (
@@ -43,6 +43,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Analytics />
         </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
@@ -51,3 +52,4 @@ function App() {
 
 
 export default App
+
