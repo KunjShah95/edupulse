@@ -16,7 +16,6 @@
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,
-        "baseUrl": ".",
         "paths": {
             "@/*": [
                 "./src/*"
@@ -27,8 +26,8 @@
             "@modules/*": [
                 "./src/modules/*"
             ],
-            "@shared/*": [
-                "./src/shared/*"
+            "@types/*": [
+                "./src/types/*"
             ]
         },
         "types": [

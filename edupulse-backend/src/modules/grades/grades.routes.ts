@@ -50,7 +50,15 @@ async function checkGradeAccess(userId: string, userRole: string, grade: any): P
         const teacher = await prisma.teacher.findUnique({
             where: { userId },
         });
-        return teacher ? teacher.id === grade.course.teacherId : false;
+        if (!teacher) return false;
+
+        // Ensure we resolve course ownership reliably
+        const course = await prisma.course.findUnique({
+            where: { id: grade.courseId },
+            select: { teacherId: true },
+        });
+
+        return course ? course.teacherId === teacher.id : false;
     }
     
     return false;
