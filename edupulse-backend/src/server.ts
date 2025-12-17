@@ -1,9 +1,13 @@
 import { buildApp } from './app.js';
 import config, { validateConfig } from './config/index.js';
 import { connectDatabase } from './config/database.js';
+import { initializeSentry, registerSentryHooks } from './services/sentry.service.js';
 
 async function main(): Promise<void> {
     try {
+        // Initialize Sentry error tracking
+        initializeSentry();
+
         // Validate configuration
         validateConfig();
 
@@ -12,6 +16,9 @@ async function main(): Promise<void> {
 
         // Build and start server
         const app = await buildApp();
+
+        // Register Sentry hooks
+        await registerSentryHooks(app);
 
         await app.listen({
             port: config.port,

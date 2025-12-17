@@ -10,7 +10,6 @@ import {
     NotFoundError, 
     ConflictError, 
     BadRequestError,
-    ValidationError 
 } from '../../utils/error.util.js';
 
 const prisma = new PrismaClient();
@@ -20,7 +19,6 @@ export interface CreateReservationDto {
     bookId: string;
     userId: string;
     userType: 'student' | 'teacher';
-    notes?: string;
 }
 
 export interface CancelReservationDto {
@@ -29,7 +27,6 @@ export interface CancelReservationDto {
 
 export interface UpdateReservationDto {
     status?: 'PENDING' | 'FULFILLED' | 'CANCELLED' | 'EXPIRED';
-    notes?: string;
 }
 
 export interface ReservationQueryOptions extends PaginationOptions {
@@ -46,7 +43,6 @@ export interface ReservationQueryOptions extends PaginationOptions {
 
 export interface FulfillReservationDto {
     loanDuration?: number;
-    notes?: string;
 }
 
 export interface ReservationAvailabilityQuery {
@@ -107,7 +103,7 @@ export class ReservationsService {
      * Check if user can make a reservation
      */
     async checkAvailability(query: ReservationAvailabilityQuery): Promise<ReservationAvailabilityResult> {
-        const { bookId, userId, userType } = query;
+        const { bookId, userId } = query;
 
         // Check if book exists and is available
         const book = await prisma.book.findUnique({
@@ -244,7 +240,6 @@ export class ReservationsService {
                         reservedAt: new Date(),
                         expiresAt: expiresAt,
                         status: 'PENDING',
-                        notes: createReservationDto.notes,
                     },
                     include: {
                         book: {
@@ -255,15 +250,6 @@ export class ReservationsService {
                                 isbn: true,
                                 coverImage: true,
                                 availableCopies: true,
-                            },
-                        },
-                        user: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                                role: true,
                             },
                         },
                     },
@@ -294,12 +280,12 @@ export class ReservationsService {
      */
     async findAll(options: ReservationQueryOptions = {}): Promise<PaginationResult<any>> {
         const { page, limit, sortBy, sortOrder } = sanitizePaginationOptions(options);
-        const { userId, userType, bookId, status, pending, expired, expiresFrom, expiresTo, search } = options;
+        const { userId, bookId, status, pending, expired, expiresFrom, expiresTo, search } = options;
 
         // Build search and filter conditions
         const where = createSearchWhereClause({
             search,
-            searchFields: ['book.title', 'book.author', 'user.firstName', 'user.lastName', 'notes'],
+            searchFields: ['book.title', 'book.author'],
             filters: {
                 ...(userId && { userId }),
                 ...(bookId && { bookId }),
@@ -340,15 +326,6 @@ export class ReservationsService {
                         availableCopies: true,
                     },
                 },
-                user: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                        role: true,
-                    },
-                },
             },
         });
 
@@ -370,15 +347,6 @@ export class ReservationsService {
                         isbn: true,
                         coverImage: true,
                         availableCopies: true,
-                    },
-                },
-                user: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                        role: true,
                     },
                 },
             },
@@ -408,7 +376,7 @@ export class ReservationsService {
     /**
      * Cancel a reservation
      */
-    async cancel(id: string, cancelReservationDto: CancelReservationDto): Promise<any> {
+    async cancel(id: string, _cancelReservationDto: CancelReservationDto): Promise<any> {
         const reservation = await this.findById(id);
 
         if (reservation.status !== 'PENDING') {
@@ -420,9 +388,6 @@ export class ReservationsService {
                 where: { id },
                 data: {
                     status: 'CANCELLED',
-                    notes: cancelReservationDto.cancellationReason 
-                        ? `${reservation.notes || ''}\nCancellation: ${cancelReservationDto.cancellationReason}`.trim()
-                        : reservation.notes,
                 },
                 include: {
                     book: {
@@ -433,15 +398,6 @@ export class ReservationsService {
                             isbn: true,
                             coverImage: true,
                             availableCopies: true,
-                        },
-                    },
-                    user: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                            role: true,
                         },
                     },
                 },
@@ -494,7 +450,6 @@ export class ReservationsService {
                         borrowedAt: new Date(),
                         dueDate: dueDate,
                         status: 'ACTIVE',
-                        notes: fulfillReservationDto.notes,
                     },
                     include: {
                         book: {
@@ -526,7 +481,6 @@ export class ReservationsService {
                     where: { id },
                     data: {
                         status: 'FULFILLED',
-                        notes: reservation.notes,
                     },
                 });
 
@@ -559,7 +513,6 @@ export class ReservationsService {
                 where: { id },
                 data: {
                     ...(updateReservationDto.status && { status: updateReservationDto.status }),
-                    ...(updateReservationDto.notes !== undefined && { notes: updateReservationDto.notes }),
                 },
                 include: {
                     book: {
@@ -570,15 +523,6 @@ export class ReservationsService {
                             isbn: true,
                             coverImage: true,
                             availableCopies: true,
-                        },
-                    },
-                    user: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                            role: true,
                         },
                     },
                 },
@@ -708,7 +652,6 @@ export class ReservationsService {
             cancelledReservations,
             expiredReservations,
             reservationsByStatus,
-            reservationsByUserType,
             mostRequestedBooks
         ] = await Promise.all([
             prisma.bookReservation.count(),
@@ -725,9 +668,6 @@ export class ReservationsService {
                 by: ['status'],
                 _count: { id: true },
             }),
-            // This would need a join with User table to get user type
-            // For simplicity, we'll return empty arrays for now
-            Promise.resolve([]),
             prisma.bookReservation.groupBy({
                 by: ['bookId'],
                 _count: { id: true },
@@ -761,7 +701,6 @@ export class ReservationsService {
                 status: item.status,
                 count: item._count.id,
             })),
-            reservationsByUserType: [], // Would need user type join
             mostRequestedBooks: mostRequestedBooksWithTitles,
         };
     }
@@ -808,7 +747,7 @@ export class ReservationsService {
     /**
      * Bulk cancel reservations
      */
-    async bulkCancel(reservationIds: string[], cancellationReason?: string): Promise<any> {
+    async bulkCancel(reservationIds: string[], _cancellationReason?: string): Promise<any> {
         const existingReservations = await prisma.bookReservation.findMany({
             where: {
                 id: { in: reservationIds },
@@ -826,9 +765,6 @@ export class ReservationsService {
             },
             data: {
                 status: 'CANCELLED',
-                notes: cancellationReason 
-                    ? `Bulk cancellation: ${cancellationReason}`
-                    : 'Bulk cancellation'
             }
         });
 
@@ -857,14 +793,6 @@ export class ReservationsService {
                 }
             },
             include: {
-                user: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                    },
-                },
                 book: {
                     select: {
                         title: true,
@@ -880,8 +808,7 @@ export class ReservationsService {
             notificationsSent: expiringSoonReservations.length,
             reservations: expiringSoonReservations.map((r: any) => ({
                 reservationId: r.id,
-                userId: r.user?.id,
-                userEmail: r.user?.email,
+                userId: r.userId,
                 bookTitle: r.book.title,
                 expiresAt: r.expiresAt,
                 notificationType: 'EXPIRING_SOON'

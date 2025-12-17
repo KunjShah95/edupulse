@@ -11,6 +11,8 @@ import {
     type VerifyEmailDto,
     type RefreshTokenDto,
 } from './auth.dto.js';
+import { emailService } from '../../services/email.service.js';
+import config from '../../config/index.js';
 
 interface TokenPayload {
     id: string;
@@ -89,6 +91,19 @@ class AuthService {
 
         // Store refresh token
         await this.storeRefreshToken(user.id, tokens.refreshToken);
+
+        // Send verification email
+        try {
+            const verificationUrl = `${config.frontendUrl}/verify-email?token=${emailVerifyToken}`;
+            await emailService.sendVerificationEmail({
+                email: user.email,
+                verificationToken: emailVerifyToken,
+                verificationUrl,
+            });
+        } catch (error: any) {
+            console.warn('Failed to send verification email:', error.message);
+            // Continue registration even if email fails
+        }
 
         // Return user without sensitive data
         const { password, ...userWithoutPassword } = user;
@@ -320,8 +335,18 @@ class AuthService {
             },
         });
 
-        // TODO: Send email with reset link
-        console.log(`Password reset token for ${email}: ${resetToken}`);
+        // Send password reset email
+        try {
+            const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
+            await emailService.sendPasswordResetEmail({
+                email: user.email,
+                resetToken,
+                resetUrl,
+            });
+        } catch (error: any) {
+            console.error('Failed to send password reset email:', error.message);
+            throw new Error('Failed to send password reset email. Please try again later.');
+        }
     }
 
     async resetPassword(token: string, newPassword: string): Promise<void> {

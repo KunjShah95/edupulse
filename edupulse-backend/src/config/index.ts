@@ -60,6 +60,12 @@ export const config = {
 
     // Password
     bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
+
+    // Sentry Error Tracking
+    sentry: {
+        dsn: process.env.SENTRY_DSN || '',
+        tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
+    },
 } as const;
 
 // Validate required environment variables

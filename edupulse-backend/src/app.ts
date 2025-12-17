@@ -4,11 +4,14 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
 import config from './config/index.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { requestContextMiddleware } from './middleware/request-context.middleware.js';
+import { loggingService } from './services/logging.service.js';
 
 // Import routes
 import authRoutes from './modules/auth/auth.routes.js';
@@ -16,15 +19,12 @@ import userRoutes from './modules/users/users.routes.js';
 import studentRoutes from './modules/students/students.routes.js';
 import teacherRoutes from './modules/teachers/teachers.routes.js';
 import healthRoutes from './modules/health/health.routes.js';
+import quizRoutes from './modules/quiz/quiz.routes.js';
+import { registerFileRoutes } from './routes/files.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
     const app = Fastify({
-        logger: {
-            level: config.logLevel,
-            transport: config.env === 'development'
-                ? { target: 'pino-pretty', options: { colorize: true } }
-                : undefined,
-        },
+        logger: loggingService.getLogger(),
     });
 
     // ========================================
@@ -68,6 +68,22 @@ export async function buildApp(): Promise<FastifyInstance> {
         hook: 'onRequest',
     });
 
+    // Request Context Middleware (for correlation IDs and timing)
+    app.addHook('onRequest', requestContextMiddleware);
+
+    // Response logging
+    app.addHook('onResponse', (request, reply, done) => {
+        loggingService.logResponse(request, reply.statusCode, Date.now() - request.startTime);
+        done();
+    });
+
+    // Multipart/form-data file upload support
+    await app.register(multipart, {
+        limits: {
+            fileSize: 50 * 1024 * 1024, // 50MB
+        },
+    });
+
     // Swagger Documentation
     await app.register(swagger, {
         openapi: {
@@ -98,6 +114,7 @@ export async function buildApp(): Promise<FastifyInstance> {
                 { name: 'Users', description: 'User management endpoints' },
                 { name: 'Students', description: 'Student management endpoints' },
                 { name: 'Teachers', description: 'Teacher management endpoints' },
+                { name: 'Quizzes', description: 'Quiz management endpoints' },
             ],
         },
     });
@@ -168,6 +185,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     await app.register(userRoutes, { prefix: `${apiPrefix}/users` });
     await app.register(studentRoutes, { prefix: `${apiPrefix}/students` });
     await app.register(teacherRoutes, { prefix: `${apiPrefix}/teachers` });
+    await app.register(quizRoutes, { prefix: `${apiPrefix}` });
+
+    // File routes
+    await registerFileRoutes(app);
 
     // Root route
     app.get('/', async () => ({
