@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/node';
 
 vi.mock('@sentry/node');
 
-import { sentryService } from './sentry.service.js';
+import sentryService from './sentry.service.js';
 
 describe('Sentry Service', () => {
     const mockCaptureException = vi.fn();

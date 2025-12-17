@@ -187,10 +187,55 @@ export function captureTransaction(
     });
 }
 
+/**
+ * Capture exception
+ */
+export function captureException(error: Error, context?: Record<string, any>): void {
+    if (!config.sentry.dsn) {
+        return;
+    }
+
+    Sentry.captureException(error, context);
+}
+
+/**
+ * Set user context
+ */
+export function setUserContext(id: string | null, email?: string | null, role?: string | null): void {
+    if (!config.sentry.dsn) {
+        return;
+    }
+
+    if (id === null) {
+        Sentry.setUser(null);
+    } else {
+        Sentry.setUser({ 
+            id, 
+            email: email || undefined, 
+            role: role || undefined 
+        });
+    }
+}
+
+/**
+ * Start transaction
+ */
+export function startTransaction(name: string, op: string): any {
+    if (!config.sentry.dsn) {
+        return null;
+    }
+
+    // Use Sentry.startTransaction with proper typing
+    return (Sentry as any).startTransaction({ name, op });
+}
+
 export default {
     initializeSentry,
     registerSentryHooks,
     captureBreadcrumb,
     captureBusinessEvent,
     captureTransaction,
+    captureException,
+    setUserContext,
+    startTransaction,
 };
