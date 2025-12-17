@@ -1,0 +1,58 @@
+{
+    "name": "edupulse-backend",
+    "version": "1.0.0",
+    "description": "Backend API for EduPulse School Management System",
+    "main": "dist/server.js",
+    "type": "module",
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "db:generate": "prisma generate",
+        "db:push": "prisma db push",
+        "db:migrate": "prisma migrate dev",
+        "db:seed": "tsx prisma/seed.ts",
+        "db:studio": "prisma studio",
+        "lint": "eslint src --ext .ts",
+        "test": "vitest",
+        "test:coverage": "vitest run --coverage"
+    },
+    "keywords": [
+        "edupulse",
+        "school-management",
+        "education",
+        "api",
+        "backend"
+    ],
+    "author": "EduPulse Team",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@fastify/cookie": "^10.0.0",
+        "@fastify/cors": "^10.0.0",
+        "@fastify/helmet": "^12.0.0",
+        "@fastify/jwt": "^9.0.0",
+        "@fastify/multipart": "^9.0.0",
+        "@fastify/rate-limit": "^10.0.0",
+        "@fastify/swagger": "^9.0.0",
+        "@fastify/swagger-ui": "^5.0.0",
+        "@prisma/client": "^6.0.0",
+        "argon2": "^0.41.0",
+        "dotenv": "^16.4.0",
+        "fastify": "^5.0.0",
+        "pino": "^9.0.0",
+        "pino-pretty": "^11.0.0",
+        "socket.io": "^4.7.0",
+        "zod": "^3.23.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.19.3",
+        "eslint": "^9.0.0",
+        "prisma": "^6.0.0",
+        "tsx": "^4.19.0",
+        "typescript": "^5.6.0",
+        "vitest": "^4.0.16"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
+}
