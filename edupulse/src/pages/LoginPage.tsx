@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const LoginPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { login } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -40,8 +42,8 @@ const LoginPage = () => {
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-emerald-600 mb-4">
                         <User className="w-7 h-7 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-1">Welcome Back</h1>
-                    <p className="text-zinc-400">Sign in to EduPulse Portal</p>
+                    <h1 className="text-2xl font-bold text-white mb-1">{t('auth.loginTitle')}</h1>
+                    <p className="text-zinc-400">{t('common.welcome')}</p>
                 </div>
 
                 {error && (
@@ -57,7 +59,7 @@ const LoginPage = () => {
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300">Email Address</label>
+                        <label className="text-sm font-medium text-zinc-300">{t('common.email')}</label>
                         <div className="relative">
                             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                             <input
@@ -72,7 +74,7 @@ const LoginPage = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300">Password</label>
+                        <label className="text-sm font-medium text-zinc-300">{t('common.password')}</label>
                         <div className="relative">
                             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                             <input
@@ -89,9 +91,9 @@ const LoginPage = () => {
                     <div className="flex items-center justify-between text-sm">
                         <label className="flex items-center text-zinc-400 hover:text-zinc-300 cursor-pointer transition-colors">
                             <input type="checkbox" className="mr-2 rounded border-zinc-600 bg-zinc-700 text-emerald-600 focus:ring-emerald-600/50" />
-                            Remember me
+                            {t('common.rememberMe')}
                         </label>
-                        <a href="#" className="text-emerald-400 hover:text-emerald-300 transition-colors">Forgot Password?</a>
+                        <a href="#" className="text-emerald-400 hover:text-emerald-300 transition-colors">{t('common.forgotPassword')}</a>
                     </div>
 
                     <button
@@ -103,16 +105,16 @@ const LoginPage = () => {
                             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <>
-                                Sign In <ArrowRight className="w-5 h-5" />
+                                {t('common.login')} <ArrowRight className="w-5 h-5" />
                             </>
                         )}
                     </button>
                 </form>
 
                 <div className="mt-8 text-center text-sm text-zinc-400">
-                    Don't have an account?{' '}
+                    {t('common.dontHaveAccount')}{' '}
                     <Link to="/signup" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
-                        Create Account
+                        {t('common.signup')}
                     </Link>
                 </div>
             </motion.div>

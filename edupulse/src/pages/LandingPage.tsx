@@ -4,8 +4,10 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Play, CheckCircle, Users, BookOpen, Award, X, Menu, Star, Quote, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const LandingPage = () => {
+    const { t } = useTranslation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [showDemoModal, setShowDemoModal] = useState(false);
     const navigate = useNavigate();
@@ -78,13 +80,13 @@ const LandingPage = () => {
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
                         <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-white transition-colors">
-                            Features
+                            {t('navigation.features')}
                         </a>
                         <a href="#about" onClick={(e) => scrollToSection(e, 'about')} className="hover:text-white transition-colors">
-                            About
+                            {t('navigation.about')}
                         </a>
                         <a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="hover:text-white transition-colors">
-                            Testimonials
+                            {t('navigation.testimonials')}
                         </a>
                     </div>
 

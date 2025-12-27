@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
-import QuizService from './quiz.service.js';
-
-// Mock Prisma
-vi.mock('@prisma/client', () => ({
-    PrismaClient: vi.fn(() => ({
+vi.mock('@prisma/client', () => {
+    const mockPrismaClient = {
         quiz: {
             create: vi.fn(),
             findUnique: vi.fn(),
@@ -27,17 +24,21 @@ vi.mock('@prisma/client', () => ({
         user: {
             update: vi.fn(),
         },
-    })),
-}));
+    };
+    return {
+        PrismaClient: vi.fn(() => mockPrismaClient),
+    };
+});
+import QuizService from './quiz.service';
 
 describe('Quiz Service', () => {
     let quizService: any;
     let mockPrisma: any;
 
     beforeEach(() => {
-        quizService = new (require('./quiz.service.js').default)();
-        mockPrisma = (PrismaClient as any)();
-        quizService.prisma = mockPrisma;
+        quizService = new QuizService();
+        mockPrisma = new PrismaClient();
+        (quizService as any).prisma = mockPrisma;
     });
 
     afterEach(() => {

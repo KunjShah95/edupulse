@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -69,6 +70,9 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             </div>
 
             <div className="flex items-center gap-4">
+                {/* Language Switcher */}
+                <LanguageSwitcher />
+
                 {/* Theme Toggle */}
                 <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

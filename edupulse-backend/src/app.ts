@@ -1,4 +1,6 @@
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { Server } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -20,12 +22,26 @@ import studentRoutes from './modules/students/students.routes.js';
 import teacherRoutes from './modules/teachers/teachers.routes.js';
 import healthRoutes from './modules/health/health.routes.js';
 import quizRoutes from './modules/quiz/quiz.routes.js';
+import chatRoutes from './modules/chat/chat.routes.js';
 import { registerFileRoutes } from './routes/files.routes.js';
 
-export async function buildApp(): Promise<FastifyInstance> {
+export async function buildApp(): Promise<{ app: FastifyInstance; socketServer: SocketIOServer }> {
     const app = Fastify({
         logger: loggingService.getLogger(),
     });
+
+    // Attach socket.io
+    const socketServer = new SocketIOServer(app.server, {
+        cors: {
+            origin: config.corsOrigins,
+            methods: ['GET', 'POST'],
+            credentials: true,
+        },
+    });
+
+    // Make socketServer available throughout the app
+    app.decorate('socketServer', socketServer);
+
 
     // ========================================
     // PLUGINS
@@ -186,6 +202,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     await app.register(studentRoutes, { prefix: `${apiPrefix}/students` });
     await app.register(teacherRoutes, { prefix: `${apiPrefix}/teachers` });
     await app.register(quizRoutes, { prefix: `${apiPrefix}` });
+    await app.register(chatRoutes, { prefix: `${apiPrefix}/chat` });
 
     // File routes
     await registerFileRoutes(app);
@@ -204,15 +221,17 @@ export async function buildApp(): Promise<FastifyInstance> {
 
     app.addHook('onClose', async () => {
         await disconnectDatabase();
+        app.socketServer.close();
     });
 
-    return app;
+    return { app, socketServer };
 }
 
 // Type augmentation for Fastify
 declare module 'fastify' {
     interface FastifyInstance {
         authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+        socketServer: SocketIOServer;
     }
 }
 

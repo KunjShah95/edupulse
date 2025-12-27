@@ -1,3 +1,4 @@
+import { initializeSocket } from './socket.js';
 import { buildApp } from './app.js';
 import config, { validateConfig } from './config/index.js';
 import { connectDatabase } from './config/database.js';
@@ -15,7 +16,10 @@ async function main(): Promise<void> {
         await connectDatabase();
 
         // Build and start server
-        const app = await buildApp();
+        const { app, socketServer } = await buildApp();
+
+        // Initialize Socket.IO
+        initializeSocket(socketServer, app);
 
         // Register Sentry hooks
         await registerSentryHooks(app);

@@ -1,9 +1,19 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+            import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Resend } from 'resend';
 
-vi.mock('resend');
+vi.mock('resend', () => {
+    const mockSend = vi.fn();
+    const mockResendClient = {
+        emails: {
+            send: mockSend,
+        },
+    };
+    return {
+        Resend: vi.fn(() => mockResendClient),
+    };
+});
 
-import { emailService } from './email.service.js';
+import { emailService } from './email.service';
 
 describe('Email Service', () => {
     const mockSend = vi.fn();
@@ -15,7 +25,6 @@ describe('Email Service', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(Resend).mockReturnValue(mockResendClient as any);
     });
 
     afterEach(() => {
@@ -82,7 +91,7 @@ describe('Email Service', () => {
                 html: '<p>Notification</p>',
             });
 
-            expect(result.id).toBe(mockId);
+            expect(result?.id).toBe(mockId);
         });
     });
 
@@ -625,3 +634,35 @@ describe('Email Service', () => {
 
     // ========================================
     // CONFIGURATION
+    // ========================================
+
+    describe('Configuration', () => {
+        it('should validate email service configuration', async () => {
+            expect(emailService).toBeDefined();
+            expect(typeof emailService.sendEmail).toBe('function');
+        });
+
+        it('should have all required email methods', async () => {
+            expect(typeof emailService.sendVerificationEmail).toBe('function');
+            expect(typeof emailService.sendPasswordResetEmail).toBe('function');
+            expect(typeof emailService.sendWelcomeEmail).toBe('function');
+            expect(typeof emailService.sendGradeNotificationEmail).toBe('function');
+            expect(typeof emailService.sendAttendanceNotificationEmail).toBe('function');
+            expect(typeof emailService.sendAssignmentNotificationEmail).toBe('function');
+        });
+
+        it('should use correct sender email address', async () => {
+            mockSend.mockResolvedValue({ id: 'config-123' });
+            await emailService.sendEmail({
+                to: 'test@example.com',
+                subject: 'Test',
+                html: '<p>Test</p>',
+            });
+            expect(mockSend).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    from: expect.stringContaining('@edupulse.com'),
+                })
+            );
+        });
+    });
+});

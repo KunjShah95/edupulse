@@ -60,7 +60,7 @@ describe('Files Routes', () => {
             await registerFileRoutes(app);
 
             const postCalls = app.post.mock.calls;
-            const uploadCall = postCalls.find(call => call[0].includes('upload'));
+            const uploadCall = postCalls.find((call: any[]) => call[0].includes('upload'));
 
             expect(uploadCall).toBeDefined();
         });
@@ -69,7 +69,7 @@ describe('Files Routes', () => {
             await registerFileRoutes(app);
 
             const getCalls = app.get.mock.calls;
-            const downloadCall = getCalls.find(call => call[0].includes('presigned-download'));
+            const downloadCall = getCalls.find((call: any[]) => call[0].includes('presigned-download'));
 
             expect(downloadCall).toBeDefined();
         });
@@ -78,7 +78,7 @@ describe('Files Routes', () => {
             await registerFileRoutes(app);
 
             const postCalls = app.post.mock.calls;
-            const presignedCall = postCalls.find(call => call[0].includes('presigned-upload'));
+            const presignedCall = postCalls.find((call: any[]) => call[0].includes('presigned-upload'));
 
             expect(presignedCall).toBeDefined();
         });
@@ -87,7 +87,7 @@ describe('Files Routes', () => {
             await registerFileRoutes(app);
 
             const deleteCalls = app.delete.mock.calls;
-            const deleteCall = deleteCalls.find(call => call[0].includes('files'));
+            const deleteCall = deleteCalls.find((call: any[]) => call[0].includes('files'));
 
             expect(deleteCall).toBeDefined();
         });
@@ -228,6 +228,7 @@ describe('Files Routes', () => {
 
             vi.mocked(storageService.getPresignedUploadUrl).mockResolvedValue({
                 url: mockUrl,
+                key: 'homework.docx',
             });
 
             const result = await storageService.getPresignedUploadUrl('homework.docx', 'application/msword');

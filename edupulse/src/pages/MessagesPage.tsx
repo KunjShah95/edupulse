@@ -1,29 +1,39 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Send, Paperclip, Phone, Video, Info } from 'lucide-react';
+import { Search, Send, Paperclip, Phone, Video, Info, Check, CheckCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useSocket } from '../context/SocketContext';
+import { useAuth, User } from '../context/AuthContext';
 
-const contacts = [
-    { id: 1, name: 'Dr. Sarah Wilson', role: 'Math Teacher', avatar: 'SW', online: true, lastMsg: 'The results are published.' },
-    { id: 2, name: 'Principal Office', role: 'Administration', avatar: 'PO', online: false, lastMsg: 'Please attend the meeting tomorrow.' },
-    { id: 3, name: 'Mr. James Brown', role: 'Physics Teacher', avatar: 'JB', online: true, lastMsg: 'Lab equipment is ready.' },
-    { id: 4, name: 'Class 10-A Group', role: 'Group Chat', avatar: '10A', online: false, lastMsg: 'Study guide attached.' },
-    { id: 5, name: 'Emily Davis', role: 'Parent', avatar: 'ED', online: false, lastMsg: 'Can we schedule a call?' },
-];
+interface Message {
+    id: string;
+    sender: Partial<User>;
+    content: string;
+    createdAt: string;
+    attachments: string[];
+    readAt?: string;
+}
 
-const initialMessages = [
-    { id: 1, sender: 'them', text: 'Hi, I wanted to discuss the upcoming math test.', time: '10:30 AM' },
-    { id: 2, sender: 'me', text: 'Sure, happy to help. What specific topics are you concerned about?', time: '10:32 AM' },
-    { id: 3, sender: 'them', text: 'Mainly calculus and derivatives.', time: '10:33 AM' },
-    { id: 4, sender: 'me', text: 'I understand. We can review those after class on Thursday.', time: '10:35 AM' },
-    { id: 5, sender: 'them', text: 'That would be great! Thank you so much.', time: '10:36 AM' },
+interface Conversation {
+    id: string;
+    participants: string[];
+}
+
+// Mock contacts for now, will be replaced with real data
+const contacts: Partial<User>[] = [
+    { id: 'user-2', firstName: 'Dr. Sarah', lastName: 'Wilson', role: 'teacher' },
+    { id: 'user-3', firstName: 'Principal', lastName: 'Office', role: 'admin' },
 ];
 
 const MessagesPage = () => {
-    const [selectedContact, setSelectedContact] = useState(contacts[0]);
-    const [messages, setMessages] = useState(initialMessages);
+    const { socket, isConnected } = useSocket();
+    const { user } = useAuth();
+    const [selectedContact, setSelectedContact] = useState<Partial<User>>(contacts[0]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
+    const [conversation, setConversation] = useState<Conversation | null>(null);
+    const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { addToast } = useToast();
 
@@ -32,33 +42,105 @@ const MessagesPage = () => {
     };
 
     useEffect(() => {
+        if (socket && selectedContact?.id) {
+            // Get or create conversation
+            socket.emit('getConversation', selectedContact.id, (conv: Conversation) => {
+                setConversation(conv);
+                socket.emit('joinRoom', conv.id);
+
+                // Fetch initial messages
+                fetch(`http://localhost:3000/api/v1/chat/${conv.id}/messages`, {
+                    headers: {
+                        'Authorization': `Bearer your-jwt-token` // Replace with actual token
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => setMessages(data))
+                    .catch(err => console.error('Error fetching messages:', err));
+            });
+        }
+    }, [socket, selectedContact]);
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('newMessage', (message: Message) => {
+                setMessages(prev => [...prev, message]);
+                if (message.sender.id !== user?.id) {
+                    addToast(`New message from ${message.sender.firstName}`, 'info');
+                }
+            });
+
+            socket.on('typing', ({ user, isTyping }) => {
+                // Logic to show typing indicator for the user
+                setIsTyping(isTyping);
+            });
+
+            socket.on('messageRead', ({ messageId }) => {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === messageId ? { ...msg, readAt: new Date().toISOString() } : msg
+                ));
+            });
+
+            return () => {
+                socket.off('newMessage');
+                socket.off('typing');
+                socket.off('messageRead');
+            };
+        }
+    }, [socket, addToast, user?.id]);
+
+    useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !conversation) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        addToast('Uploading file...', 'info');
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/v1/chat/upload/${conversation.id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer your-jwt-token` // Replace with actual token
+                },
+                body: formData,
+            });
+
+            if (response.ok) {
+                addToast('File uploaded successfully', 'success');
+            } else {
+                addToast('File upload failed', 'error');
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            addToast('File upload failed', 'error');
+        }
+    };
+
     const handleSendMessage = () => {
-        if (!inputMessage.trim()) return;
+        if (!inputMessage.trim() || !socket || !conversation) return;
 
-        const newMessage = {
-            id: messages.length + 1,
-            sender: 'me',
-            text: inputMessage,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
+        socket.emit('sendMessage', {
+            conversationId: conversation.id,
+            message: inputMessage,
+        });
 
-        setMessages(prevMessages => [...prevMessages, newMessage]);
         setInputMessage('');
+    };
 
-        // Simulate reply
-        setTimeout(() => {
-            const reply = {
-                id: messages.length + 2,
-                sender: 'them',
-                text: "Thanks for your message! I'll get back to you shortly.",
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages(prevMessages => [...prevMessages, reply]);
-            addToast('New message received', 'info');
-        }, 3000);
+    const handleTyping = (isTyping: boolean) => {
+        if (!socket || !conversation) return;
+        socket.emit('typing', {
+            conversationId: conversation.id,
+            isTyping,
+        });
     };
 
     const container = {
@@ -94,26 +176,22 @@ const MessagesPage = () => {
                         <div
                             key={contact.id}
                             onClick={() => setSelectedContact(contact)}
-                            className={`p-4 flex items-center gap-3 cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800/50 ${selectedContact.id === contact.id
+                            className={`p-4 flex items-center gap-3 cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800/50 ${selectedContact?.id === contact.id
                                 ? 'bg-blue-50 dark:bg-blue-900/20'
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                                 }`}
                         >
                             <div className="relative">
                                 <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-sm">
-                                    {contact.avatar}
+                                    {contact.firstName?.charAt(0)}
                                 </div>
-                                {contact.online && (
-                                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
-                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline mb-0.5">
-                                    <h4 className={`font-semibold text-sm truncate ${selectedContact.id === contact.id ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-white'
-                                        }`}>{contact.name}</h4>
-                                    <span className="text-[10px] text-slate-400">10:30 AM</span>
+                                    <h4 className={`font-semibold text-sm truncate ${selectedContact?.id === contact.id ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-white'
+                                        }`}>{contact.firstName} {contact.lastName}</h4>
                                 </div>
-                                <p className="text-xs text-slate-500 truncate">{contact.lastMsg}</p>
+                                <p className="text-xs text-slate-500 truncate">{contact.role}</p>
                             </div>
                         </div>
                     ))}
@@ -127,15 +205,13 @@ const MessagesPage = () => {
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-blue-600 dark:text-blue-300">
-                                {selectedContact.avatar}
+                                {selectedContact?.firstName?.charAt(0)}
                             </div>
-                            {selectedContact.online && (
-                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
-                            )}
+                            <span className={`absolute bottom-0 right-0 w-3 h-3 ${isConnected ? 'bg-green-500' : 'bg-red-500'} border-2 border-white dark:border-slate-900 rounded-full`}></span>
                         </div>
                         <div>
-                            <h3 className="font-bold text-slate-900 dark:text-white">{selectedContact.name}</h3>
-                            <p className="text-xs text-green-500 font-medium">{selectedContact.online ? 'Online' : 'Offline'}</p>
+                            <h3 className="font-bold text-slate-900 dark:text-white">{selectedContact?.firstName} {selectedContact?.lastName}</h3>
+                            <p className={`text-xs font-medium ${isConnected ? 'text-green-500' : 'text-red-500'}`}>{isConnected ? 'Connected' : 'Disconnected'}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -166,36 +242,63 @@ const MessagesPage = () => {
                         <span className="bg-slate-200 dark:bg-slate-800 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">TODAY</span>
                     </div>
                     {messages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[70%] p-3 rounded-2xl ${msg.sender === 'me'
+                        <div key={msg.id} className={`flex ${msg.sender.id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[70%] p-3 rounded-2xl ${msg.sender.id === user?.id
                                 ? 'bg-blue-600 text-white rounded-tr-none'
                                 : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-tl-none'
                                 }`}>
-                                <p className="text-sm">{msg.text}</p>
-                                <p className={`text-[10px] mt-1 text-right ${msg.sender === 'me' ? 'text-blue-200' : 'text-slate-400'
-                                    }`}>{msg.time}</p>
+                                <p className="text-sm">{msg.content}</p>
+                                {msg.attachments?.map(url => (
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-300 underline block mt-1">
+                                        Attachment
+                                    </a>
+                                ))}
+                                <p className={`text-[10px] mt-1 text-right flex items-center justify-end gap-1 ${msg.sender.id === user?.id ? 'text-blue-200' : 'text-slate-400'
+                                    }`}>
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {msg.sender.id === user?.id && (
+                                        msg.readAt ? <CheckCheck size={14} /> : <Check size={14} />
+                                    )}
+                                </p>
                             </div>
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
 
+                {/* Typing Indicator */}
+                {isTyping && (
+                    <div className="p-4 text-sm text-slate-500 italic">
+                        {selectedContact?.firstName} is typing...
+                    </div>
+                )}
                 {/* Input Area */}
                 <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-end gap-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileSelect}
+                            className="hidden"
+                        />
                         <button
-                            onClick={() => addToast('Attachment feature coming soon', 'info')}
+                            onClick={() => fileInputRef.current?.click()}
                             className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
                         >
                             <Paperclip className="w-5 h-5" />
                         </button>
                         <textarea
                             value={inputMessage}
-                            onChange={(e) => setInputMessage(e.target.value)}
+                            onChange={(e) => {
+                                setInputMessage(e.target.value);
+                                handleTyping(true);
+                            }}
+                            onBlur={() => handleTyping(false)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
                                     handleSendMessage();
+                                    handleTyping(false);
                                 }
                             }}
                             placeholder="Type your message..."
